@@ -386,7 +386,7 @@
       <div>
         <h1>AAPL 평균회귀 전략 백테스트</h1>
         <p class="subtitle">
-          AAPL Z-score가 -2 아래로 내려간 뒤 -1까지 회복하면 매수하고, 2 위로 올라간 뒤 1까지 내려오면 매도하는 Mean Reversion 전환 전략을 시각화합니다.
+          처음에는 AAPL을 매수한 상태로 시작하고, 이후 Z-score가 2 위로 올라간 뒤 1까지 내려오면 매도하며, 다시 -2 아래에서 -1까지 회복하면 재매수하는 Mean Reversion 전환 전략을 시각화합니다.
         </p>
       </div>
       <div class="badge">AAPL · Mean Reversion</div>
@@ -446,10 +446,11 @@
         <div class="section">
           <h2>전략 규칙</h2>
           <div class="hint">
-            매수 준비: Z-score ≤ 과매도 확인 기준<br>
-            매수: 이후 Z-score ≥ 매수 회복 기준<br>
-            매도 준비: Z-score ≥ 과열 확인 기준<br>
-            매도: 이후 Z-score ≤ 매도 하락 기준 또는 손절 도달
+            초기 상태: 첫 거래일부터 매수 보유<br>
+            매도 준비: 보유 중 Z-score ≥ 과열 확인 기준<br>
+            매도: 이후 Z-score ≤ 매도 하락 기준 또는 손절 도달<br>
+            재매수 준비: 현금 상태에서 Z-score ≤ 과매도 확인 기준<br>
+            재매수: 이후 Z-score ≥ 매수 회복 기준
           </div>
         </div>
       </aside>
@@ -534,7 +535,7 @@
           <h2>전략 설명</h2>
           <p>
             <strong>평균회귀 전략</strong>은 가격이 단기 평균에서 크게 벗어난 뒤 다시 평균 근처로 돌아온다는 가정을 사용합니다.
-            여기서는 AAPL 종가의 이동평균과 표준편차를 계산한 뒤, Z-score가 극단 구간을 찍고 되돌아오는 순간을 신호로 사용합니다. 즉, 하락 극단 이후 회복할 때 매수하고, 상승 극단 이후 약해질 때 매도합니다.
+            여기서는 첫 거래일부터 AAPL을 보유한 상태로 시작합니다. 이후 Z-score가 상승 극단 구간을 찍고 내려오면 매도하고, 현금 상태에서 하락 극단 구간을 찍고 회복하면 다시 매수합니다.
           </p>
           <div class="formula">Z-score = (현재 종가 - 이동평균) / 이동표준편차</div>
           <p>
@@ -726,15 +727,20 @@
       }
 
       const data = rawData;
-      let position = 0;
-      let entryPrice = 0;
+      let position = 1;
+      let entryPrice = data[0]?.close || 0;
       let strategyEquity = 1;
       let bhEquity = 1;
       let tradeReturns = [];
-      let currentTradeCost = 0;
+      let currentTradeCost = p.fee;
 
       let oversoldArmed = false;
       let overboughtArmed = false;
+      let initialBuyMarked = false;
+
+      if (entryPrice > 0) {
+        strategyEquity *= (1 - p.fee);
+      }
 
       resultData = [];
 
@@ -747,6 +753,12 @@
         let z = null;
         let signal = "HOLD";
         let stateNote = "";
+
+        if (!initialBuyMarked && i === 0 && position === 1) {
+          signal = "BUY";
+          stateNote = "INITIAL_BUY";
+          initialBuyMarked = true;
+        }
 
         if (i >= p.lookback) {
           const window = data.slice(i - p.lookback, i).map(r => r.close);
@@ -990,6 +1002,7 @@
     }
 
     function signalTag(signal, stateNote = "") {
+      if (stateNote === "INITIAL_BUY") return `<span class="tag buy">INITIAL BUY</span>`;
       if (signal === "BUY") return `<span class="tag buy">BUY</span>`;
       if (signal === "SELL") return `<span class="tag sell">SELL</span>`;
       if (signal === "STOP") return `<span class="tag sell">STOP</span>`;
