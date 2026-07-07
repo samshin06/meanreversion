@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AAPL Mean Reversion Strategy Visualizer</title>
+  <title>M7 Mean Reversion Strategy Visualizer</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -384,17 +384,29 @@
   <div class="page">
     <header>
       <div>
-        <h1>AAPL 평균회귀 전략 백테스트</h1>
+        <h1>M7 평균회귀 전략 백테스트</h1>
         <p class="subtitle">
-          처음에는 AAPL을 매수한 상태로 시작하고, 이후 Z-score가 2 위로 올라간 뒤 1까지 내려오면 매도하며, 다시 -2 아래에서 -1까지 회복하면 재매수하는 Mean Reversion 전환 전략을 시각화합니다.
+          M7 종목을 선택하면 처음에는 해당 종목을 매수한 상태로 시작하고, 이후 Z-score가 2 위로 올라간 뒤 1까지 내려오면 매도하며, 다시 -2 아래에서 -1까지 회복하면 재매수하는 Mean Reversion 전환 전략을 시각화합니다.
         </p>
       </div>
-      <div class="badge">AAPL · Mean Reversion</div>
+      <div class="badge" id="headerBadge">AAPL · Mean Reversion</div>
     </header>
 
     <div class="layout">
       <aside class="panel controls">
         <h2>전략 설정</h2>
+
+        <label for="symbolSelect">M7 종목 선택</label>
+        <select id="symbolSelect" onchange="changeSymbol(this.value)">
+          <option value="AAPL.US" selected>Apple · AAPL</option>
+          <option value="MSFT.US">Microsoft · MSFT</option>
+          <option value="NVDA.US">NVIDIA · NVDA</option>
+          <option value="AMZN.US">Amazon · AMZN</option>
+          <option value="GOOGL.US">Alphabet · GOOGL</option>
+          <option value="META.US">Meta · META</option>
+          <option value="TSLA.US">Tesla · TSLA</option>
+        </select>
+        <div class="hint">Magnificent 7: AAPL, MSFT, NVDA, AMZN, GOOGL, META, TSLA. 온라인 데이터는 Stooq 심볼을 사용합니다.</div>
 
         <div class="row">
           <div>
@@ -435,7 +447,7 @@
 
         <div class="section">
           <h2>CSV 업로드</h2>
-          <label for="csvFile">AAPL 가격 CSV</label>
+          <label for="csvFile">선택 종목 가격 CSV</label>
           <input id="csvFile" type="file" accept=".csv">
           <button class="secondary" style="width:100%;margin-top:12px;" onclick="loadCsv()">CSV 불러오기</button>
           <div class="hint">지원 컬럼: Date, Close. Stooq/Yahoo 형식 CSV 대부분 사용 가능.</div>
@@ -465,7 +477,7 @@
           <div class="panel kpi">
             <div class="label">Buy & Hold</div>
             <div class="value" id="buyHoldReturn">—</div>
-            <div class="sub">동일 기간 AAPL</div>
+            <div class="sub">동일 기간 선택 종목</div>
           </div>
           <div class="panel kpi">
             <div class="label">최대 낙폭</div>
@@ -488,7 +500,7 @@
           <div class="chart-head">
             <div>
               <h2>가격, 이동평균, 매매 신호</h2>
-              <p>AAPL 종가와 이동평균을 비교하고, 평균 대비 과매도 구간에서 매수 신호를 표시합니다.</p>
+              <p><span class="selectedName">AAPL</span> 종가와 이동평균을 비교하고, 평균 대비 과매도 구간에서 매수 신호를 표시합니다.</p>
             </div>
           </div>
           <canvas id="priceChart"></canvas>
@@ -508,7 +520,7 @@
           <div class="chart-head">
             <div>
               <h2>누적 수익률 비교</h2>
-              <p>Mean Reversion 전략과 단순 보유 전략의 누적 수익률을 비교합니다.</p>
+              <p><span class="selectedName">AAPL</span> Mean Reversion 전략과 단순 보유 전략의 누적 수익률을 비교합니다.</p>
             </div>
           </div>
           <canvas id="returnChart"></canvas>
@@ -535,7 +547,7 @@
           <h2>전략 설명</h2>
           <p>
             <strong>평균회귀 전략</strong>은 가격이 단기 평균에서 크게 벗어난 뒤 다시 평균 근처로 돌아온다는 가정을 사용합니다.
-            여기서는 첫 거래일부터 AAPL을 보유한 상태로 시작합니다. 이후 Z-score가 상승 극단 구간을 찍고 내려오면 매도하고, 현금 상태에서 하락 극단 구간을 찍고 회복하면 다시 매수합니다.
+            여기서는 첫 거래일부터 <span class="selectedName">AAPL</span>을 보유한 상태로 시작합니다. 이후 Z-score가 상승 극단 구간을 찍고 내려오면 매도하고, 현금 상태에서 하락 극단 구간을 찍고 회복하면 다시 매수합니다.
           </p>
           <div class="formula">Z-score = (현재 종가 - 이동평균) / 이동표준편차</div>
           <p>
@@ -546,7 +558,7 @@
     </div>
 
     <footer>
-      데이터: 온라인 모드는 Stooq CSV를 사용합니다. 투자 조언이 아니며, 전략 검증과 학습용 시각화입니다.
+      데이터: 온라인 모드는 선택한 M7 종목의 Stooq CSV를 사용합니다. 투자 조언이 아니며, 전략 검증과 학습용 시각화입니다.
     </footer>
   </div>
 
@@ -554,7 +566,35 @@
     let rawData = [];
     let resultData = [];
     let charts = {};
-    const symbol = "AAPL.US";
+    let symbol = "AAPL.US";
+
+    const m7Stocks = {
+      "AAPL.US": { label: "Apple", short: "AAPL", demoBase: 172 },
+      "MSFT.US": { label: "Microsoft", short: "MSFT", demoBase: 315 },
+      "NVDA.US": { label: "NVIDIA", short: "NVDA", demoBase: 420 },
+      "AMZN.US": { label: "Amazon", short: "AMZN", demoBase: 135 },
+      "GOOGL.US": { label: "Alphabet", short: "GOOGL", demoBase: 125 },
+      "META.US": { label: "Meta", short: "META", demoBase: 290 },
+      "TSLA.US": { label: "Tesla", short: "TSLA", demoBase: 230 }
+    };
+
+    function selectedStock() {
+      return m7Stocks[symbol] || m7Stocks["AAPL.US"];
+    }
+
+    function changeSymbol(value) {
+      symbol = value;
+      updateSelectedLabels();
+      loadOnline();
+    }
+
+    function updateSelectedLabels() {
+      const stock = selectedStock();
+      document.getElementById("headerBadge").textContent = `${stock.short} · Mean Reversion`;
+      document.querySelectorAll(".selectedName").forEach(el => {
+        el.textContent = stock.short;
+      });
+    }
 
     function setDefaultDates() {
       const end = new Date();
@@ -625,7 +665,7 @@
         rawData = parseCsv(text);
         if (rawData.length < 80) throw new Error("데이터가 부족합니다.");
         runBacktest();
-        showMessage("온라인 AAPL 데이터를 불러왔습니다. 브라우저/CORS 환경에 따라 실패하면 샘플 데이터 또는 CSV 업로드를 사용하세요.");
+        showMessage(`${selectedStock().short} 온라인 데이터를 불러왔습니다. 브라우저/CORS 환경에 따라 실패하면 샘플 데이터 또는 CSV 업로드를 사용하세요.`);
       } catch (error) {
         showMessage("온라인 데이터 불러오기 실패: " + error.message + " 샘플 데이터를 불러옵니다.");
         loadDemo();
@@ -679,7 +719,8 @@
     function loadDemo() {
       clearMessage();
       const demo = [];
-      let price = 172;
+      const stock = selectedStock();
+      let price = stock.demoBase;
       const start = new Date("2022-01-03");
 
       for (let i = 0; i < 760; i++) {
@@ -688,11 +729,13 @@
 
         if (d.getDay() === 0 || d.getDay() === 6) continue;
 
-        const drift = 0.00045;
-        const cycle = Math.sin(i / 18) * 0.012 + Math.sin(i / 53) * 0.009;
-        const shock = Math.sin(i * 1.73) * 0.006 + Math.cos(i * 0.41) * 0.004;
-        const meanPull = (190 - price) / 190 * 0.002;
-        price = Math.max(50, price * (1 + drift + cycle * 0.10 + shock + meanPull));
+        const seed = stock.short.length + stock.demoBase / 100;
+        const drift = 0.00035 + (seed % 4) * 0.00005;
+        const cycle = Math.sin(i / (15 + seed)) * 0.012 + Math.sin(i / (47 + seed)) * 0.009;
+        const shock = Math.sin(i * (1.51 + seed * 0.03)) * 0.006 + Math.cos(i * (0.39 + seed * 0.01)) * 0.004;
+        const anchor = stock.demoBase * (1.08 + (seed % 3) * 0.08);
+        const meanPull = (anchor - price) / anchor * 0.002;
+        price = Math.max(10, price * (1 + drift + cycle * 0.10 + shock + meanPull));
 
         demo.push({
           date: d.toISOString().slice(0, 10),
@@ -702,7 +745,7 @@
 
       rawData = demo;
       runBacktest();
-      showMessage("샘플 AAPL 스타일 데이터를 사용 중입니다. 실제 분석은 온라인 데이터 또는 CSV 업로드를 사용하세요.");
+      showMessage(`${selectedStock().short} 샘플 데이터를 사용 중입니다. 실제 분석은 온라인 데이터 또는 CSV 업로드를 사용하세요.`);
     }
 
     function mean(arr) {
@@ -931,7 +974,7 @@
         data: {
           labels,
           datasets: [
-            { label: "AAPL 종가", data: close, borderWidth: 2, pointRadius: 0, tension: 0.2 },
+            { label: `${selectedStock().short} 종가`, data: close, borderWidth: 2, pointRadius: 0, tension: 0.2 },
             { label: "이동평균", data: ma, borderWidth: 2, pointRadius: 0, tension: 0.2 },
             { label: "매수", data: buyPoints, type: "scatter", pointRadius: 6, pointHoverRadius: 8 },
             { label: "청산/손절", data: sellPoints, type: "scatter", pointRadius: 6, pointHoverRadius: 8 }
@@ -1030,6 +1073,7 @@
     }
 
     setDefaultDates();
+    updateSelectedLabels();
     loadDemo();
   </script>
 </body>
