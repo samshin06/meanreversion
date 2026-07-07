@@ -386,7 +386,7 @@
       <div>
         <h1>AAPL 평균회귀 전략 백테스트</h1>
         <p class="subtitle">
-          AAPL 가격이 이동평균 대비 과도하게 하락하면 매수하고, 평균으로 되돌아오거나 과열되면 청산하는 Mean Reversion 전략을 시각화합니다.
+          AAPL Z-score가 -2 아래로 내려간 뒤 -1까지 회복하면 매수하고, 2 위로 올라간 뒤 1까지 내려오면 매도하는 Mean Reversion 전환 전략을 시각화합니다.
         </p>
       </div>
       <div class="badge">AAPL · Mean Reversion</div>
@@ -410,11 +410,17 @@
         <label for="lookback">이동평균 기간: <b id="lookbackValue">20</b>일</label>
         <input id="lookback" type="range" min="5" max="120" step="1" value="20" oninput="setRange('lookback', this.value)">
 
-        <label for="entryZ">진입 Z-score: <b id="entryZValue">-1.50</b></label>
-        <input id="entryZ" type="range" min="-3" max="-0.3" step="0.05" value="-1.5" oninput="setRange('entryZ', this.value)">
+        <label for="oversoldZ">과매도 확인 Z-score: <b id="oversoldZValue">-2.00</b></label>
+        <input id="oversoldZ" type="range" min="-4" max="-0.5" step="0.05" value="-2" oninput="setRange('oversoldZ', this.value)">
 
-        <label for="exitZ">청산 Z-score: <b id="exitZValue">0.00</b></label>
-        <input id="exitZ" type="range" min="-2.0" max="4.0" step="0.05" value="0" oninput="setRange('exitZ', this.value)">
+        <label for="buyRecoverZ">매수 회복 Z-score: <b id="buyRecoverZValue">-1.00</b></label>
+        <input id="buyRecoverZ" type="range" min="-3" max="0.5" step="0.05" value="-1" oninput="setRange('buyRecoverZ', this.value)">
+
+        <label for="overboughtZ">과열 확인 Z-score: <b id="overboughtZValue">2.00</b></label>
+        <input id="overboughtZ" type="range" min="0.5" max="4" step="0.05" value="2" oninput="setRange('overboughtZ', this.value)">
+
+        <label for="sellDropZ">매도 하락 Z-score: <b id="sellDropZValue">1.00</b></label>
+        <input id="sellDropZ" type="range" min="-0.5" max="3" step="0.05" value="1" oninput="setRange('sellDropZ', this.value)">
 
         <label for="stopLoss">손절 기준: <b id="stopLossValue">-8.0%</b></label>
         <input id="stopLoss" type="range" min="-20" max="-2" step="0.5" value="-8" oninput="setRange('stopLoss', this.value)">
@@ -440,9 +446,10 @@
         <div class="section">
           <h2>전략 규칙</h2>
           <div class="hint">
-            매수: Z-score ≤ 진입 기준<br>
-            보유: 매수 후 포지션 유지<br>
-            청산: Z-score ≥ 청산 기준 또는 손절 도달
+            매수 준비: Z-score ≤ 과매도 확인 기준<br>
+            매수: 이후 Z-score ≥ 매수 회복 기준<br>
+            매도 준비: Z-score ≥ 과열 확인 기준<br>
+            매도: 이후 Z-score ≤ 매도 하락 기준 또는 손절 도달
           </div>
         </div>
       </aside>
@@ -527,7 +534,7 @@
           <h2>전략 설명</h2>
           <p>
             <strong>평균회귀 전략</strong>은 가격이 단기 평균에서 크게 벗어난 뒤 다시 평균 근처로 돌아온다는 가정을 사용합니다.
-            여기서는 AAPL 종가의 이동평균과 표준편차를 계산한 뒤, Z-score가 일정 수준 이하로 내려가면 매수하고 평균 근처로 회복하면 청산합니다.
+            여기서는 AAPL 종가의 이동평균과 표준편차를 계산한 뒤, Z-score가 극단 구간을 찍고 되돌아오는 순간을 신호로 사용합니다. 즉, 하락 극단 이후 회복할 때 매수하고, 상승 극단 이후 약해질 때 매도합니다.
           </p>
           <div class="formula">Z-score = (현재 종가 - 이동평균) / 이동표준편차</div>
           <p>
@@ -561,8 +568,10 @@
       document.getElementById(key).value = value;
 
       if (key === "lookback") document.getElementById("lookbackValue").textContent = String(num);
-      if (key === "entryZ") document.getElementById("entryZValue").textContent = num.toFixed(2);
-      if (key === "exitZ") document.getElementById("exitZValue").textContent = num.toFixed(2);
+      if (key === "oversoldZ") document.getElementById("oversoldZValue").textContent = num.toFixed(2);
+      if (key === "buyRecoverZ") document.getElementById("buyRecoverZValue").textContent = num.toFixed(2);
+      if (key === "overboughtZ") document.getElementById("overboughtZValue").textContent = num.toFixed(2);
+      if (key === "sellDropZ") document.getElementById("sellDropZValue").textContent = num.toFixed(2);
       if (key === "stopLoss") document.getElementById("stopLossValue").textContent = num.toFixed(1) + "%";
       if (key === "fee") document.getElementById("feeValue").textContent = num.toFixed(2) + "%";
 
@@ -572,8 +581,10 @@
     function params() {
       return {
         lookback: Number(document.getElementById("lookback").value),
-        entryZ: Number(document.getElementById("entryZ").value),
-        exitZ: Number(document.getElementById("exitZ").value),
+        oversoldZ: Number(document.getElementById("oversoldZ").value),
+        buyRecoverZ: Number(document.getElementById("buyRecoverZ").value),
+        overboughtZ: Number(document.getElementById("overboughtZ").value),
+        sellDropZ: Number(document.getElementById("sellDropZ").value),
         stopLoss: Number(document.getElementById("stopLoss").value) / 100,
         fee: Number(document.getElementById("fee").value) / 100
       };
@@ -705,6 +716,15 @@
 
     function runBacktest() {
       const p = params();
+
+      if (p.buyRecoverZ <= p.oversoldZ) {
+        showMessage("매수 회복 기준은 과매도 확인 기준보다 높아야 합니다. 예: -2 아래 확인 후 -1 회복 시 매수.");
+      }
+
+      if (p.sellDropZ >= p.overboughtZ) {
+        showMessage("매도 하락 기준은 과열 확인 기준보다 낮아야 합니다. 예: 2 위 확인 후 1 하락 시 매도.");
+      }
+
       const data = rawData;
       let position = 0;
       let entryPrice = 0;
@@ -712,6 +732,9 @@
       let bhEquity = 1;
       let tradeReturns = [];
       let currentTradeCost = 0;
+
+      let oversoldArmed = false;
+      let overboughtArmed = false;
 
       resultData = [];
 
@@ -723,6 +746,7 @@
         let sd = null;
         let z = null;
         let signal = "HOLD";
+        let stateNote = "";
 
         if (i >= p.lookback) {
           const window = data.slice(i - p.lookback, i).map(r => r.close);
@@ -738,20 +762,51 @@
         if (z !== null) {
           const openTradeReturn = position ? row.close / entryPrice - 1 : 0;
 
-          if (position === 0 && z <= p.entryZ) {
-            position = 1;
-            entryPrice = row.close;
-            currentTradeCost = p.fee;
-            strategyEquity *= (1 - p.fee);
-            signal = "BUY";
-          } else if (position === 1 && (z >= p.exitZ || openTradeReturn <= p.stopLoss)) {
-            position = 0;
-            const grossTradeReturn = row.close / entryPrice - 1;
-            const netTradeReturn = grossTradeReturn - currentTradeCost - p.fee;
-            tradeReturns.push(netTradeReturn);
-            strategyEquity *= (1 - p.fee);
-            signal = openTradeReturn <= p.stopLoss ? "STOP" : "SELL";
-            entryPrice = 0;
+          if (position === 0) {
+            if (z <= p.oversoldZ) {
+              oversoldArmed = true;
+              stateNote = "BUY_ARMED";
+            }
+
+            if (oversoldArmed && z >= p.buyRecoverZ) {
+              position = 1;
+              entryPrice = row.close;
+              currentTradeCost = p.fee;
+              strategyEquity *= (1 - p.fee);
+              signal = "BUY";
+              stateNote = "BUY_RECOVERY";
+              oversoldArmed = false;
+              overboughtArmed = false;
+            }
+          } else {
+            if (z >= p.overboughtZ) {
+              overboughtArmed = true;
+              stateNote = "SELL_ARMED";
+            }
+
+            if (openTradeReturn <= p.stopLoss) {
+              position = 0;
+              const grossTradeReturn = row.close / entryPrice - 1;
+              const netTradeReturn = grossTradeReturn - currentTradeCost - p.fee;
+              tradeReturns.push(netTradeReturn);
+              strategyEquity *= (1 - p.fee);
+              signal = "STOP";
+              stateNote = "STOP_LOSS";
+              entryPrice = 0;
+              overboughtArmed = false;
+              oversoldArmed = false;
+            } else if (overboughtArmed && z <= p.sellDropZ) {
+              position = 0;
+              const grossTradeReturn = row.close / entryPrice - 1;
+              const netTradeReturn = grossTradeReturn - currentTradeCost - p.fee;
+              tradeReturns.push(netTradeReturn);
+              strategyEquity *= (1 - p.fee);
+              signal = "SELL";
+              stateNote = "SELL_DROPOFF";
+              entryPrice = 0;
+              overboughtArmed = false;
+              oversoldArmed = false;
+            }
           }
         }
 
@@ -762,7 +817,10 @@
           sd,
           z,
           signal,
+          stateNote,
           position,
+          oversoldArmed,
+          overboughtArmed,
           strategyEquity,
           bhEquity,
           strategyReturn: (strategyEquity - 1) * 100,
@@ -821,11 +879,18 @@
       document.getElementById("tradeCount").textContent = `${tradeReturns.length}회 거래`;
 
       const current = document.getElementById("currentSignal");
-      if (last.z <= params().entryZ) {
-        current.textContent = "BUY";
+      const p = params();
+      if (last.signal === "BUY" || last.oversoldArmed) {
+        current.textContent = last.signal === "BUY" ? "BUY" : "BUY READY";
         current.className = "value positive";
-      } else if (last.z >= params().exitZ) {
-        current.textContent = "EXIT";
+      } else if (last.signal === "SELL" || last.overboughtArmed) {
+        current.textContent = last.signal === "SELL" ? "SELL" : "SELL READY";
+        current.className = "value negative";
+      } else if (last.z <= p.oversoldZ) {
+        current.textContent = "BUY ARM";
+        current.className = "value positive";
+      } else if (last.z >= p.overboughtZ) {
+        current.textContent = "SELL ARM";
         current.className = "value negative";
       } else {
         current.textContent = "WAIT";
@@ -871,8 +936,10 @@
           labels,
           datasets: [
             { label: "Z-score", data: resultData.map(r => r.z), borderWidth: 2, pointRadius: 0, tension: 0.18 },
-            { label: "진입 기준", data: resultData.map(() => p.entryZ), borderWidth: 1.5, pointRadius: 0, borderDash: [6, 5] },
-            { label: "청산 기준", data: resultData.map(() => p.exitZ), borderWidth: 1.5, pointRadius: 0, borderDash: [6, 5] }
+            { label: "과매도 확인", data: resultData.map(() => p.oversoldZ), borderWidth: 1.5, pointRadius: 0, borderDash: [6, 5] },
+            { label: "매수 회복", data: resultData.map(() => p.buyRecoverZ), borderWidth: 1.5, pointRadius: 0, borderDash: [4, 4] },
+            { label: "과열 확인", data: resultData.map(() => p.overboughtZ), borderWidth: 1.5, pointRadius: 0, borderDash: [6, 5] },
+            { label: "매도 하락", data: resultData.map(() => p.sellDropZ), borderWidth: 1.5, pointRadius: 0, borderDash: [4, 4] }
           ]
         },
         options: baseChartOptions("Z-score")
@@ -922,16 +989,18 @@
       return `${y.slice(2)}.${m}.${d}`;
     }
 
-    function signalTag(signal) {
+    function signalTag(signal, stateNote = "") {
       if (signal === "BUY") return `<span class="tag buy">BUY</span>`;
       if (signal === "SELL") return `<span class="tag sell">SELL</span>`;
       if (signal === "STOP") return `<span class="tag sell">STOP</span>`;
+      if (stateNote === "BUY_ARMED") return `<span class="tag buy">BUY READY</span>`;
+      if (stateNote === "SELL_ARMED") return `<span class="tag sell">SELL READY</span>`;
       return `<span class="tag hold">HOLD</span>`;
     }
 
     function renderTable() {
       const rows = resultData
-        .filter(r => r.signal !== "HOLD" || r.z !== null)
+        .filter(r => r.signal !== "HOLD" || r.stateNote === "BUY_ARMED" || r.stateNote === "SELL_ARMED")
         .slice(-18)
         .reverse();
 
@@ -941,7 +1010,7 @@
           <td>${r.close.toFixed(2)}</td>
           <td>${r.ma === null ? "—" : r.ma.toFixed(2)}</td>
           <td>${r.z === null ? "—" : r.z.toFixed(2)}</td>
-          <td>${signalTag(r.signal)}</td>
+          <td>${signalTag(r.signal, r.stateNote)}</td>
           <td class="${r.strategyReturn >= 0 ? "positive" : "negative"}">${pct(r.strategyReturn)}</td>
         </tr>
       `).join("");
